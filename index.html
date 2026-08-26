@@ -440,7 +440,7 @@
 
   <div class="invite">
     <p class="eyebrow"><span class="status-dot" id="statusDot"></span><span id="statusText">Conectando...</span></p>
-    <h1 class="names" id="coupleNames" contenteditable="true" spellcheck="false">Os Noivos</h1>
+    <h1 class="names" id="coupleNames" contenteditable="true" spellcheck="false">Felipe e Sabrina</h1>
     <div class="divider"><span class="rule"></span><span class="dot"></span><span class="rule"></span></div>
     <p class="subdate" id="weddingDate" contenteditable="true" spellcheck="false">toque para adicionar a data</p>
 
@@ -453,40 +453,85 @@
     <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
   </div>
 
-  <div class="tabs">
+  <div class="tabs" style="grid-template-columns:repeat(4,1fr);">
     <div class="tab-btn" data-side="Noivo">Lado dele<span class="tab-count" id="countNoivo">0</span></div>
     <div class="tab-btn" data-side="Noiva">Lado dela<span class="tab-count" id="countNoiva">0</span></div>
     <div class="tab-btn active" data-side="all">Todos<span class="tab-count" id="countTodos">0</span></div>
+    <div class="tab-btn" data-side="Padrinhos">Padrinhos<span class="tab-count" id="countPadrinhos">0</span></div>
   </div>
 
-  <div class="section-label">Adicionar convidado</div>
-  <div class="add-card">
-    <div class="add-row">
-      <input id="inName" type="text" placeholder="Nome do convidado" />
-      <select id="inSide">
-        <option value="Noivo">Lado dele</option>
-        <option value="Noiva">Lado dela</option>
-        <option value="Ambos">Ambos</option>
-      </select>
+  <div id="guestsSection">
+    <div class="section-label">Adicionar convidado</div>
+    <div class="add-card">
+      <div class="add-row">
+        <input id="inName" type="text" placeholder="Nome do convidado" />
+        <select id="inSide">
+          <option value="Noivo">Lado dele</option>
+          <option value="Noiva">Lado dela</option>
+          <option value="Ambos">Ambos</option>
+        </select>
+      </div>
+      <p id="sideHint" style="display:none;font-family:'Space Mono',monospace;font-size:10.5px;color:var(--ink-soft);margin:-4px 0 10px;"></p>
+      <div class="add-row small">
+        <input id="inGroup" type="text" placeholder="Grupo (família, trabalho...)" />
+        <input id="inCompanions" type="number" min="0" value="0" placeholder="Acompanhantes" />
+      </div>
+      <button class="btn full" id="addBtn">Adicionar à lista</button>
     </div>
-    <p id="sideHint" style="display:none;font-family:'Space Mono',monospace;font-size:10.5px;color:var(--ink-soft);margin:-4px 0 10px;"></p>
-    <div class="add-row small">
-      <input id="inGroup" type="text" placeholder="Grupo (família, trabalho...)" />
-      <input id="inCompanions" type="number" min="0" value="0" placeholder="Acompanhantes" />
+
+    <div class="section-label">Convidados</div>
+    <div class="filter-bar">
+      <input class="search" id="searchInput" type="text" placeholder="Buscar por nome..." />
+      <span class="chip active" data-filter="all">Todos</span>
+      <span class="chip" data-filter="pending">Pendentes</span>
+      <span class="chip" data-filter="confirmed">Confirmados</span>
+      <span class="chip" data-filter="declined">Recusados</span>
     </div>
-    <button class="btn full" id="addBtn">Adicionar à lista</button>
+
+    <div id="guestList"></div>
   </div>
 
-  <div class="section-label">Convidados</div>
-  <div class="filter-bar">
-    <input class="search" id="searchInput" type="text" placeholder="Buscar por nome..." />
-    <span class="chip active" data-filter="all">Todos</span>
-    <span class="chip" data-filter="pending">Pendentes</span>
-    <span class="chip" data-filter="confirmed">Confirmados</span>
-    <span class="chip" data-filter="declined">Recusados</span>
+  <div id="padrinhosSection" style="display:none;">
+    <div class="section-label">Adicionar padrinho / madrinha</div>
+    <div class="add-card">
+      <div class="add-row">
+        <input id="inPadrinhoName" type="text" placeholder="Nome" />
+        <select id="inPadrinhoRole">
+          <option value="Padrinho">Padrinho</option>
+          <option value="Madrinha">Madrinha</option>
+          <option value="Pajem">Pajem</option>
+          <option value="Dama">Dama de honra</option>
+        </select>
+      </div>
+      <div class="add-row small">
+        <select id="inPadrinhoSide">
+          <option value="Noivo">Lado dele</option>
+          <option value="Noiva">Lado dela</option>
+          <option value="Ambos">Ambos</option>
+        </select>
+        <input id="inPadrinhoPar" type="text" placeholder="Dupla com (opcional)" />
+      </div>
+      <button class="btn full" id="addPadrinhoBtn">Adicionar padrinho</button>
+    </div>
+
+    <div class="section-label">Padrinhos e madrinhas</div>
+
+    <div class="add-card" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <span style="font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);">Meta de padrinhos</span>
+        <span style="font-family:'Fraunces',serif;font-size:15px;">
+          <span id="padrinhosConfirmedCount">0</span> de
+          <span id="padrinhosTarget" contenteditable="true" spellcheck="false" style="border-bottom:1px dashed var(--gold);outline:none;padding:0 2px;cursor:text;">6</span>
+          confirmados
+        </span>
+      </div>
+      <div class="progress-track" style="margin-top:10px;"><div class="progress-fill" id="padrinhosProgressFill" style="width:0%"></div></div>
+      <p style="font-family:'Space Mono',monospace;font-size:10px;color:var(--ink-soft);margin:8px 0 0;">toque no número da meta para editar</p>
+    </div>
+
+    <div id="padrinhosList"></div>
   </div>
 
-  <div id="guestList"></div>
   <div class="footer-note">Toque no selo para alternar o status &middot; sincroniza em tempo real entre os dispositivos conectados</div>
   <div class="config-link" id="reconfigureLink">trocar configuração do banco de dados</div>
 </div>
@@ -494,6 +539,7 @@
 <script>
 (function(){
   let guests = [];
+  let padrinhos = [];
   let currentFilter = 'all';
   let currentSide = 'all';
   let searchTerm = '';
@@ -504,6 +550,13 @@
   const countNoivo = document.getElementById('countNoivo');
   const countNoiva = document.getElementById('countNoiva');
   const countTodos = document.getElementById('countTodos');
+  const countPadrinhos = document.getElementById('countPadrinhos');
+  const guestsSection = document.getElementById('guestsSection');
+  const padrinhosSection = document.getElementById('padrinhosSection');
+  const padrinhosListEl = document.getElementById('padrinhosList');
+  const padrinhosTargetEl = document.getElementById('padrinhosTarget');
+  const padrinhosConfirmedCountEl = document.getElementById('padrinhosConfirmedCount');
+  const padrinhosProgressFill = document.getElementById('padrinhosProgressFill');
 
   const listEl = document.getElementById('guestList');
   const statTotal = document.getElementById('statTotal');
@@ -557,7 +610,7 @@
   let db = null;
   let docRef = null;
   let unsubscribe = null;
-  let localCoupleNames = 'Os Noivos';
+  let localCoupleNames = 'Felipe e Sabrina';
   let localWeddingDate = '';
 
   function getSavedConfig(){
@@ -586,6 +639,8 @@
     unsubscribe = docRef.onSnapshot((snap)=>{
       const data = snap.data() || {};
       guests = data.guests || [];
+      padrinhos = data.padrinhos || [];
+      if(data.padrinhosTarget){ padrinhosTargetEl.textContent = data.padrinhosTarget; }
       if(data.info){
         if(data.info.names) coupleNames.textContent = data.info.names;
         if(data.info.date) weddingDate.textContent = data.info.date;
@@ -594,6 +649,8 @@
       statusDot.classList.add('connected');
       statusText.textContent = 'Sincronizado';
       render();
+      countPadrinhos.textContent = padrinhos.length;
+      if(padrinhosSection.style.display !== 'none') renderPadrinhos();
     }, (err)=>{
       console.error('Erro ao ler dados', err);
       statusDot.classList.remove('connected');
@@ -605,6 +662,20 @@
     if(!docRef) return;
     try{ await docRef.set({ guests }, { merge:true }); }
     catch(e){ console.error('Falha ao salvar convidados', e); }
+  }
+
+  async function savePadrinhos(){
+    if(!docRef) return;
+    try{ await docRef.set({ padrinhos }, { merge:true }); }
+    catch(e){ console.error('Falha ao salvar padrinhos', e); }
+  }
+
+  async function savePadrinhosTarget(){
+    if(!docRef) return;
+    const val = parseInt(padrinhosTargetEl.textContent) || 0;
+    padrinhosTargetEl.textContent = val;
+    try{ await docRef.set({ padrinhosTarget: val }, { merge:true }); }
+    catch(e){ console.error('Falha ao salvar meta de padrinhos', e); }
   }
 
   async function saveInfo(){
@@ -756,6 +827,95 @@
     }
   });
 
+  function renderPadrinhos(){
+    countPadrinhos.textContent = padrinhos.length;
+    const confirmed = padrinhos.filter(p=>p.status==='confirmed').length;
+    const target = parseInt(padrinhosTargetEl.textContent) || 0;
+    padrinhosConfirmedCountEl.textContent = confirmed;
+    padrinhosProgressFill.style.width = target ? Math.min(100, Math.round((confirmed/target)*100)) + '%' : '0%';
+
+    if(!loaded) return;
+
+    if(padrinhos.length === 0){
+      padrinhosListEl.innerHTML = `
+        <div class="empty">
+          <div class="glyph">Ninguém escolhido ainda</div>
+          <div>Adicione o primeiro padrinho ou madrinha acima.</div>
+        </div>`;
+      return;
+    }
+
+    padrinhosListEl.innerHTML = padrinhos.map(p=>{
+      const metaTags = [
+        `<span class="tag">${escapeHtml(p.role)}</span>`,
+        `<span class="tag">${p.side}</span>`,
+        p.pair ? `<span class="tag">com ${escapeHtml(p.pair)}</span>` : ''
+      ].filter(Boolean).join('');
+
+      return `
+        <div class="guest" data-id="${p.id}">
+          <button class="seal ${p.status}" title="${STATUS_LABEL[p.status]} — toque para mudar" data-action="cyclePadrinho">${STATUS_ICON[p.status]}</button>
+          <div class="guest-info">
+            <div class="guest-name">${escapeHtml(p.name)}</div>
+            <div class="guest-meta">${metaTags}</div>
+          </div>
+          <div class="guest-actions">
+            <button class="icon-btn" title="Remover" data-action="deletePadrinho">✕</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  padrinhosListEl.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-action]');
+    if(!btn) return;
+    const row = e.target.closest('.guest');
+    const id = row.dataset.id;
+    const p = padrinhos.find(x=>x.id===id);
+    if(!p) return;
+
+    if(btn.dataset.action === 'cyclePadrinho'){
+      const idx = STATUS_CYCLE.indexOf(p.status);
+      p.status = STATUS_CYCLE[(idx+1) % STATUS_CYCLE.length];
+      savePadrinhos();
+      renderPadrinhos();
+    } else if(btn.dataset.action === 'deletePadrinho'){
+      padrinhos = padrinhos.filter(x=>x.id!==id);
+      savePadrinhos();
+      renderPadrinhos();
+    }
+  });
+
+  document.getElementById('addPadrinhoBtn').addEventListener('click', ()=>{
+    const nameEl = document.getElementById('inPadrinhoName');
+    const name = nameEl.value.trim();
+    if(!name){ nameEl.focus(); return; }
+    const role = document.getElementById('inPadrinhoRole').value;
+    const side = document.getElementById('inPadrinhoSide').value;
+    const pair = document.getElementById('inPadrinhoPar').value.trim();
+
+    padrinhos.push({ id: uid(), name, role, side, pair, status:'pending' });
+    savePadrinhos();
+
+    nameEl.value = '';
+    document.getElementById('inPadrinhoPar').value = '';
+    nameEl.focus();
+    renderPadrinhos();
+  });
+
+  document.getElementById('inPadrinhoName').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') document.getElementById('addPadrinhoBtn').click();
+  });
+
+  padrinhosTargetEl.addEventListener('blur', ()=>{ savePadrinhosTarget(); renderPadrinhos(); });
+  padrinhosTargetEl.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ e.preventDefault(); padrinhosTargetEl.blur(); }
+    // only allow digits, navigation and control keys
+    if(!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Enter'].includes(e.key)){
+      e.preventDefault();
+    }
+  });
+
   function applySideToForm(){
     if(currentSide === 'all'){
       inSideSelect.style.display = '';
@@ -774,6 +934,15 @@
     tab.addEventListener('click', ()=>{
       document.querySelectorAll('.tab-btn').forEach(t=>t.classList.remove('active'));
       tab.classList.add('active');
+
+      if(tab.dataset.side === 'Padrinhos'){
+        guestsSection.style.display = 'none';
+        padrinhosSection.style.display = '';
+        renderPadrinhos();
+        return;
+      }
+      padrinhosSection.style.display = 'none';
+      guestsSection.style.display = '';
       currentSide = tab.dataset.side;
       applySideToForm();
       render();

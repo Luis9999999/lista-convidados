@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista de Convidados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600&family=Space+Mono&display=swap" rel="stylesheet">
+<script>
+  function loadScript(src, timeoutMs){
+    timeoutMs = timeoutMs || 7000;
+    return new Promise((resolve, reject)=>{
+      let settled = false;
+      const s = document.createElement('script');
+      const timer = setTimeout(()=>{
+        if(settled) return;
+        settled = true;
+        reject(new Error('tempo esgotado: ' + src));
+      }, timeoutMs);
+      s.src = src;
+      s.onload = () => { if(settled) return; settled = true; clearTimeout(timer); resolve(); };
+      s.onerror = () => { if(settled) return; settled = true; clearTimeout(timer); reject(new Error('falhou: ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+  window.__firebaseReady = (async function ensureFirebase(){
+    const sources = [
+      ['https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js', 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js'],
+      ['https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-app-compat.js', 'https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-firestore-compat.js'],
+      ['https://unpkg.com/firebase@10.12.2/firebase-app-compat.js', 'https://unpkg.com/firebase@10.12.2/firebase-firestore-compat.js']
+    ];
+    for(const pair of sources){
+      try{
+        await loadScript(pair[0]);
+        await loadScript(pair[1]);
+        if(typeof firebase !== 'undefined') return true;
+      }catch(e){ /* tenta a próxima fonte */ }
+    }
+    return false;
+  })();
+</script>
+<style>
+  :root{
+    --paper:#FAF6EF;
+    --paper-2:#F3EBDD;
+    --ink:#2A211C;
+    --ink-soft:#6b5d52;
+    --rose:#A9645C;
+    --sage:#6B7654;
+    --gold:#A8823C;
+    --line:#DED2C0;
+    --danger:#a4453d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:760px;
+    margin:0 auto;
+    padding:32px 20px 80px;
+  }
+
+  /* ---- HERO / INVITATION CARD ---- */
+  .invite{
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    border-radius:2px;
+    padding:44px 30px 34px;
+    text-align:center;
+    position:relative;
+    box-shadow: 0 1px 0 var(--line), 0 12px 30px -18px rgba(42,33,28,0.35);
+  }
+  .invite::before, .invite::after{
+    content:"";
+    position:absolute;
+    left:50%; transform:translateX(-50%);
+    width:36px; height:1px;
+    background:var(--gold);
+  }
+  .invite::before{ top:20px; }
+  .invite::after{ bottom:20px; }
+  .eyebrow{
+    font-family:'Space Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:2.5px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:0 0 14px;
+  }
+  .names{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-weight:500;
+    font-size:clamp(30px,7vw,46px);
+    line-height:1.1;
+    margin:0;
+    cursor:text;
+    outline:none;
+  }
+  .names[contenteditable]:hover{ background:rgba(168,130,60,0.06); }
+  .divider{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    margin:18px 0 6px;
+    color:var(--gold);
+  }
+  .divider .dot{ width:4px; height:4px; border-radius:50%; background:var(--gold); }
+  .divider .rule{ width:44px; height:1px; background:var(--line); }
+  .subdate{
+    font-family:'Space Mono', monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    letter-spacing:0.5px;
+    outline:none;
+  }
+
+  /* ---- STATS (seals) ---- */
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    margin-top:26px;
+  }
+  .stat{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:2px;
+    padding:14px 8px;
+    text-align:center;
+  }
+  .stat .num{
+    font-family:'Fraunces', serif;
+    font-size:26px;
+    font-weight:600;
+  }
+  .stat .lbl{
+    font-family:'Space Mono', monospace;
+    font-size:9.5px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+  .stat.confirmed .num{ color:var(--sage); }
+  .stat.pending .num{ color:var(--gold); }
+  .stat.declined .num{ color:var(--danger); }
+
+  .progress-track{
+    margin-top:14px;
+    height:5px;
+    background:var(--line);
+    border-radius:3px;
+    overflow:hidden;
+    display:flex;
+  }
+  .progress-fill{ height:100%; background:var(--sage); transition:width .4s ease; }
+
+  /* ---- SIDE TABS ---- */
+  .tabs{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
+    margin-top:28px;
+  }
+  .tab-btn{
+    font-family:'Fraunces', serif;
+    font-size:14.5px;
+    padding:12px 8px 10px;
+    text-align:center;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:2px;
+    cursor:pointer;
+    color:var(--ink-soft);
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .tab-btn .tab-count{
+    display:block;
+    font-family:'Space Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.5px;
+    margin-top:3px;
+    color:var(--ink-soft);
+  }
+  .tab-btn.active{
+    border-color:var(--ink);
+    color:var(--ink);
+    font-style:italic;
+  }
+  .tab-btn.active[data-side="Noivo"]{ border-color:var(--sage); }
+  .tab-btn.active[data-side="Noiva"]{ border-color:var(--rose); }
+
+  /* ---- SECTION LABEL ---- */
+  .section-label{
+    font-family:'Space Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:40px 0 12px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .section-label::after{ content:""; flex:1; height:1px; background:var(--line); }
+
+  /* ---- ADD FORM ---- */
+  .add-card{
+    background:var(--paper-2);
+    border:1px solid var(--line);
+    border-radius:2px;
+    padding:18px;
+  }
+  .add-row{
+    display:grid;
+    grid-template-columns: 1fr 120px;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .add-row.small{ grid-template-columns: 1fr 1fr; }
+  input, select{
+    font-family:'Work Sans', sans-serif;
+    font-size:14px;
+    padding:10px 12px;
+    border:1px solid var(--line);
+    border-radius:2px;
+    background:var(--paper);
+    color:var(--ink);
+    outline:none;
+    width:100%;
+  }
+  input:focus, select:focus{ border-color:var(--gold); }
+  input::placeholder{ color:#a89a8c; }
+  .btn{
+    font-family:'Work Sans', sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    letter-spacing:0.3px;
+    padding:10px 16px;
+    border-radius:2px;
+    border:1px solid var(--ink);
+    background:var(--ink);
+    color:var(--paper);
+    cursor:pointer;
+    transition:opacity .15s ease;
+  }
+  .btn:hover{ opacity:0.85; }
+  .btn.full{ width:100%; margin-top:4px; }
+  .btn.ghost{
+    background:transparent;
+    color:var(--ink-soft);
+    border-color:var(--line);
+  }
+
+  /* ---- FILTER BAR ---- */
+  .filter-bar{
+    display:flex;
+    gap:8px;
+    margin:16px 0 14px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .search{ flex:1; min-width:140px; }
+  .chip{
+    font-family:'Space Mono', monospace;
+    font-size:11px;
+    padding:7px 12px;
+    border-radius:20px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    color:var(--ink-soft);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .chip.active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+
+  /* ---- GUEST LIST ---- */
+  .guest{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:14px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .guest:last-child{ border-bottom:none; }
+
+  .seal{
+    flex:0 0 auto;
+    width:38px; height:38px;
+    border-radius:50%;
+    border:none;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:15px;
+    color:#fff;
+    position:relative;
+    transition:transform .15s ease;
+  }
+  .seal:hover{ transform:scale(1.06); }
+  .seal.pending{ background: radial-gradient(circle at 32% 28%, #cfa668, var(--gold)); }
+  .seal.confirmed{ background: radial-gradient(circle at 32% 28%, #8b9878, var(--sage)); }
+  .seal.declined{ background: radial-gradient(circle at 32% 28%, #c17169, var(--danger)); }
+
+  .guest-info{ flex:1; min-width:0; }
+  .guest-name{ font-size:15px; font-weight:500; }
+  .guest-meta{
+    font-family:'Space Mono', monospace;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    margin-top:3px;
+    display:flex; gap:8px; flex-wrap:wrap;
+  }
+  .tag{
+    padding:1px 7px;
+    border:1px solid var(--line);
+    border-radius:10px;
+  }
+  .guest-actions{ display:flex; gap:6px; flex:0 0 auto; }
+  .icon-btn{
+    background:none; border:none; cursor:pointer;
+    color:var(--ink-soft);
+    font-size:15px;
+    padding:4px 6px;
+  }
+  .icon-btn:hover{ color:var(--danger); }
+
+  .empty{
+    text-align:center;
+    padding:50px 20px;
+    color:var(--ink-soft);
+  }
+  .empty .glyph{ font-family:'Fraunces', serif; font-style:italic; font-size:22px; color:var(--ink); margin-bottom:6px; }
+
+  .footer-note{
+    text-align:center;
+    font-family:'Space Mono', monospace;
+    font-size:10px;
+    color:#a89a8c;
+    margin-top:36px;
+    letter-spacing:0.5px;
+  }
+
+  @media (max-width:480px){
+    .add-row{ grid-template-columns:1fr; }
+    .stats{ grid-template-columns:repeat(2,1fr); }
+  }
+
+  /* ---- SETUP OVERLAY ---- */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(42,33,28,0.55);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    z-index:50;
+  }
+  .overlay-card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:2px;
+    max-width:480px;
+    width:100%;
+    padding:28px;
+    max-height:88vh;
+    overflow-y:auto;
+  }
+  .overlay-card h2{
+    font-family:'Fraunces', serif;
+    font-style:italic;
+    font-weight:500;
+    font-size:24px;
+    margin:0 0 10px;
+  }
+  .overlay-card p{
+    font-size:13.5px;
+    color:var(--ink-soft);
+    line-height:1.5;
+    margin:0 0 14px;
+  }
+  .overlay-card textarea{
+    width:100%;
+    min-height:140px;
+    font-family:'Space Mono', monospace;
+    font-size:12px;
+    padding:12px;
+    border:1px solid var(--line);
+    border-radius:2px;
+    background:var(--paper-2);
+    color:var(--ink);
+    resize:vertical;
+  }
+  .overlay-error{
+    font-family:'Space Mono', monospace;
+    font-size:11.5px;
+    color:var(--danger);
+    margin-top:8px;
+    display:none;
+  }
+  .config-link{
+    display:block;
+    text-align:center;
+    font-family:'Space Mono', monospace;
+    font-size:10px;
+    color:#a89a8c;
+    margin-top:10px;
+    cursor:pointer;
+    text-decoration:underline;
+  }
+  .status-dot{
+    display:inline-block;
+    width:7px; height:7px;
+    border-radius:50%;
+    margin-right:6px;
+    background:var(--gold);
+  }
+  .status-dot.connected{ background:var(--sage); }
+</style>
+</head>
+<body>
+
+<div class="overlay" id="setupOverlay">
+  <div class="overlay-card">
+    <h2>Conectar ao banco de dados</h2>
+    <p id="autoStatus">Conectando automaticamente à lista compartilhada...</p>
+    <button class="btn ghost full" id="skipAutoBtn" style="margin-bottom:14px;">Está demorando? Inserir manualmente</button>
+    <p id="manualIntro" class="manual-only" style="display:none;">Cole abaixo o objeto <strong>firebaseConfig</strong> que você copiou do console do Firebase (Configurações do projeto &rarr; Seus apps). Isso só precisa ser feito uma vez por dispositivo.</p>
+    <textarea id="configInput" class="manual-only" style="display:none;" placeholder='{
+  "apiKey": "...",
+  "authDomain": "...",
+  "projectId": "...",
+  ...
+}'></textarea>
+    <p class="overlay-error" id="configError">Não consegui ler essa configuração. Confira se copiou o objeto inteiro, entre chaves { }.</p>
+    <button class="btn full manual-only" id="connectBtn" style="margin-top:14px;display:none;">Conectar</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="invite">
+    <p class="eyebrow"><span class="status-dot" id="statusDot"></span><span id="statusText">Conectando...</span></p>
+    <h1 class="names" id="coupleNames" contenteditable="true" spellcheck="false">Os Noivos</h1>
+    <div class="divider"><span class="rule"></span><span class="dot"></span><span class="rule"></span></div>
+    <p class="subdate" id="weddingDate" contenteditable="true" spellcheck="false">toque para adicionar a data</p>
+
+    <div class="stats">
+      <div class="stat"><div class="num" id="statTotal">0</div><div class="lbl">Convidados</div></div>
+      <div class="stat confirmed"><div class="num" id="statConfirmed">0</div><div class="lbl">Confirmados</div></div>
+      <div class="stat pending"><div class="num" id="statPending">0</div><div class="lbl">Pendentes</div></div>
+      <div class="stat declined"><div class="num" id="statDeclined">0</div><div class="lbl">Recusados</div></div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab-btn" data-side="Noivo">Lado dele<span class="tab-count" id="countNoivo">0</span></div>
+    <div class="tab-btn" data-side="Noiva">Lado dela<span class="tab-count" id="countNoiva">0</span></div>
+    <div class="tab-btn active" data-side="all">Todos<span class="tab-count" id="countTodos">0</span></div>
+  </div>
+
+  <div class="section-label">Adicionar convidado</div>
+  <div class="add-card">
+    <div class="add-row">
+      <input id="inName" type="text" placeholder="Nome do convidado" />
+      <select id="inSide">
+        <option value="Noivo">Lado dele</option>
+        <option value="Noiva">Lado dela</option>
+        <option value="Ambos">Ambos</option>
+      </select>
+    </div>
+    <p id="sideHint" style="display:none;font-family:'Space Mono',monospace;font-size:10.5px;color:var(--ink-soft);margin:-4px 0 10px;"></p>
+    <div class="add-row small">
+      <input id="inGroup" type="text" placeholder="Grupo (família, trabalho...)" />
+      <input id="inCompanions" type="number" min="0" value="0" placeholder="Acompanhantes" />
+    </div>
+    <button class="btn full" id="addBtn">Adicionar à lista</button>
+  </div>
+
+  <div class="section-label">Convidados</div>
+  <div class="filter-bar">
+    <input class="search" id="searchInput" type="text" placeholder="Buscar por nome..." />
+    <span class="chip active" data-filter="all">Todos</span>
+    <span class="chip" data-filter="pending">Pendentes</span>
+    <span class="chip" data-filter="confirmed">Confirmados</span>
+    <span class="chip" data-filter="declined">Recusados</span>
+  </div>
+
+  <div id="guestList"></div>
+  <div class="footer-note">Toque no selo para alternar o status &middot; sincroniza em tempo real entre os dispositivos conectados</div>
+  <div class="config-link" id="reconfigureLink">trocar configuração do banco de dados</div>
+</div>
+
+<script>
+(function(){
+  let guests = [];
+  let currentFilter = 'all';
+  let currentSide = 'all';
+  let searchTerm = '';
+  let loaded = false;
+
+  const inSideSelect = document.getElementById('inSide');
+  const sideHint = document.getElementById('sideHint');
+  const countNoivo = document.getElementById('countNoivo');
+  const countNoiva = document.getElementById('countNoiva');
+  const countTodos = document.getElementById('countTodos');
+
+  const listEl = document.getElementById('guestList');
+  const statTotal = document.getElementById('statTotal');
+  const statConfirmed = document.getElementById('statConfirmed');
+  const statPending = document.getElementById('statPending');
+  const statDeclined = document.getElementById('statDeclined');
+  const progressFill = document.getElementById('progressFill');
+  const coupleNames = document.getElementById('coupleNames');
+  const weddingDate = document.getElementById('weddingDate');
+
+  const STATUS_CYCLE = ['pending','confirmed','declined'];
+  const STATUS_ICON = { pending:'?', confirmed:'✓', declined:'✕' };
+  const STATUS_LABEL = { pending:'Pendente', confirmed:'Confirmado', declined:'Recusado' };
+
+  function uid(){ return 'g_' + Date.now() + '_' + Math.random().toString(36).slice(2,8); }
+
+  const CONFIG_KEY = 'weddingFirebaseConfig';
+  const DEFAULT_CONFIG = {
+    apiKey: "AIzaSyDrxXtD87F6amGgmKKCtti2pZjuldmoW3c",
+    authDomain: "casamento-sabrina-e-felipe.firebaseapp.com",
+    projectId: "casamento-sabrina-e-felipe",
+    storageBucket: "casamento-sabrina-e-felipe.firebasestorage.app",
+    messagingSenderId: "457802656043",
+    appId: "1:457802656043:web:5512381364022c6564bd6e",
+    measurementId: "G-K0G1NFXTEP"
+  };
+  const setupOverlay = document.getElementById('setupOverlay');
+  const configInput = document.getElementById('configInput');
+  const configError = document.getElementById('configError');
+  const connectBtn = document.getElementById('connectBtn');
+  const reconfigureLink = document.getElementById('reconfigureLink');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const autoStatus = document.getElementById('autoStatus');
+
+  function showManualForm(message){
+    autoStatus.style.display = 'none';
+    document.getElementById('skipAutoBtn').style.display = 'none';
+    document.querySelectorAll('.manual-only').forEach(el => el.style.display = '');
+    configError.style.display = message ? 'block' : 'none';
+    if(message) configError.textContent = message;
+    setupOverlay.style.display = 'flex';
+  }
+
+  document.getElementById('skipAutoBtn').addEventListener('click', ()=>{
+    const saved = getSavedConfig() || DEFAULT_CONFIG;
+    if(saved) configInput.value = JSON.stringify(saved, null, 2);
+    showManualForm();
+  });
+
+  let db = null;
+  let docRef = null;
+  let unsubscribe = null;
+  let localCoupleNames = 'Os Noivos';
+  let localWeddingDate = '';
+
+  function getSavedConfig(){
+    try{
+      const raw = localStorage.getItem(CONFIG_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
+  }
+
+  function initFirebase(config){
+    try{
+      if(!firebase.apps.length){ firebase.initializeApp(config); }
+      db = firebase.firestore();
+      docRef = db.collection('wedding').doc('data');
+      setupOverlay.style.display = 'none';
+      statusText.textContent = 'Conectando...';
+      subscribeToData();
+    }catch(e){
+      console.error('Erro ao iniciar Firebase', e);
+      showManualForm('Não consegui conectar com essa configuração: ' + e.message);
+    }
+  }
+
+  function subscribeToData(){
+    if(unsubscribe) unsubscribe();
+    unsubscribe = docRef.onSnapshot((snap)=>{
+      const data = snap.data() || {};
+      guests = data.guests || [];
+      if(data.info){
+        if(data.info.names) coupleNames.textContent = data.info.names;
+        if(data.info.date) weddingDate.textContent = data.info.date;
+      }
+      loaded = true;
+      statusDot.classList.add('connected');
+      statusText.textContent = 'Sincronizado';
+      render();
+    }, (err)=>{
+      console.error('Erro ao ler dados', err);
+      statusDot.classList.remove('connected');
+      statusText.textContent = 'Erro de conexão — confira as regras do Firestore';
+    });
+  }
+
+  async function saveGuests(){
+    if(!docRef) return;
+    try{ await docRef.set({ guests }, { merge:true }); }
+    catch(e){ console.error('Falha ao salvar convidados', e); }
+  }
+
+  async function saveInfo(){
+    if(!docRef) return;
+    try{
+      await docRef.set({
+        info: {
+          names: coupleNames.textContent.trim(),
+          date: weddingDate.textContent.trim()
+        }
+      }, { merge:true });
+    }catch(e){ console.error('Falha ao salvar informações', e); }
+  }
+
+  function parseFirebaseConfig(raw){
+    let text = raw.trim();
+    // Try strict JSON first
+    try{ return JSON.parse(text); }catch(e){ /* fall through to sanitize */ }
+
+    // Tolerate JS object literal syntax: strip trailing semicolon,
+    // quote unquoted keys, remove trailing commas before } or ]
+    text = text.replace(/;\s*$/, '');
+    text = text.replace(/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$]*)\s*:/g, '$1"$2":');
+    text = text.replace(/,(\s*[}\]])/g, '$1');
+    return JSON.parse(text);
+  }
+
+  connectBtn.addEventListener('click', async ()=>{
+    let parsed;
+    try{
+      parsed = parseFirebaseConfig(configInput.value);
+      if(!parsed.projectId) throw new Error('faltando projectId');
+    }catch(e){
+      configError.style.display = 'block';
+      configError.textContent = 'Não consegui ler essa configuração. Confira se copiou o objeto inteiro, entre chaves { }.';
+      return;
+    }
+    if(typeof firebase === 'undefined'){
+      configError.style.display = 'block';
+      configError.textContent = 'Ainda carregando as bibliotecas, aguarde...';
+      const ok = await window.__firebaseReady;
+      if(!ok || typeof firebase === 'undefined'){
+        configError.textContent = 'As bibliotecas do Firebase não carregaram por nenhuma fonte. Tente numa aba anônima sem extensões, ou em outra rede.';
+        return;
+      }
+    }
+    configError.style.display = 'none';
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(parsed));
+    initFirebase(parsed);
+  });
+
+  reconfigureLink.addEventListener('click', ()=>{
+    const saved = getSavedConfig() || DEFAULT_CONFIG;
+    if(saved) configInput.value = JSON.stringify(saved, null, 2);
+    showManualForm();
+  });
+
+  function belongsToSide(g, side){
+    if(side === 'all') return true;
+    return g.side === side || g.side === 'Ambos';
+  }
+
+  function headCount(g){ return 1 + (parseInt(g.companions)||0); }
+
+  function computeStats(){
+    let total = 0, confirmed = 0, pending = 0, declined = 0;
+    guests.filter(g=>belongsToSide(g, currentSide)).forEach(g=>{
+      const count = headCount(g);
+      total += count;
+      if(g.status==='confirmed') confirmed += count;
+      else if(g.status==='declined') declined += count;
+      else pending += count;
+    });
+    statTotal.textContent = total;
+    statConfirmed.textContent = confirmed;
+    statPending.textContent = pending;
+    statDeclined.textContent = declined;
+    progressFill.style.width = total ? Math.round((confirmed/total)*100) + '%' : '0%';
+
+    countNoivo.textContent = guests.filter(g=>belongsToSide(g,'Noivo')).reduce((s,g)=>s+headCount(g),0);
+    countNoiva.textContent = guests.filter(g=>belongsToSide(g,'Noiva')).reduce((s,g)=>s+headCount(g),0);
+    countTodos.textContent = guests.reduce((s,g)=>s+headCount(g),0);
+  }
+
+  function matchesFilter(g){
+    if(!belongsToSide(g, currentSide)) return false;
+    if(currentFilter !== 'all' && g.status !== currentFilter) return false;
+    if(searchTerm && !g.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    return true;
+  }
+
+  function render(){
+    computeStats();
+    const filtered = guests.filter(matchesFilter);
+
+    if(!loaded) return;
+
+    if(filtered.length === 0){
+      listEl.innerHTML = `
+        <div class="empty">
+          <div class="glyph">${guests.length===0 ? 'Sua lista está em branco' : 'Nenhum convidado encontrado'}</div>
+          <div>${guests.length===0 ? 'Adicione o primeiro convidado acima.' : 'Tente outro filtro ou busca.'}</div>
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = filtered.map(g=>{
+      const metaTags = [
+        `<span class="tag">${g.side}</span>`,
+        g.group ? `<span class="tag">${escapeHtml(g.group)}</span>` : '',
+        (parseInt(g.companions)||0) > 0 ? `<span class="tag">+${g.companions}</span>` : ''
+      ].filter(Boolean).join('');
+
+      return `
+        <div class="guest" data-id="${g.id}">
+          <button class="seal ${g.status}" title="${STATUS_LABEL[g.status]} — toque para mudar" data-action="cycle">${STATUS_ICON[g.status]}</button>
+          <div class="guest-info">
+            <div class="guest-name">${escapeHtml(g.name)}</div>
+            <div class="guest-meta">${metaTags}</div>
+          </div>
+          <div class="guest-actions">
+            <button class="icon-btn" title="Remover" data-action="delete">✕</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+
+  listEl.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-action]');
+    if(!btn) return;
+    const row = e.target.closest('.guest');
+    const id = row.dataset.id;
+    const guest = guests.find(g=>g.id===id);
+    if(!guest) return;
+
+    if(btn.dataset.action === 'cycle'){
+      const idx = STATUS_CYCLE.indexOf(guest.status);
+      guest.status = STATUS_CYCLE[(idx+1) % STATUS_CYCLE.length];
+      saveGuests();
+      render();
+    } else if(btn.dataset.action === 'delete'){
+      guests = guests.filter(g=>g.id!==id);
+      saveGuests();
+      render();
+    }
+  });
+
+  function applySideToForm(){
+    if(currentSide === 'all'){
+      inSideSelect.style.display = '';
+      inSideSelect.disabled = false;
+      sideHint.style.display = 'none';
+    } else {
+      inSideSelect.value = currentSide;
+      inSideSelect.style.display = 'none';
+      inSideSelect.disabled = true;
+      sideHint.style.display = 'block';
+      sideHint.textContent = 'Adicionando em: ' + (currentSide === 'Noivo' ? 'Lado dele' : 'Lado dela');
+    }
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      currentSide = tab.dataset.side;
+      applySideToForm();
+      render();
+    });
+  });
+
+  document.getElementById('addBtn').addEventListener('click', ()=>{
+    const nameEl = document.getElementById('inName');
+    const name = nameEl.value.trim();
+    if(!name){ nameEl.focus(); return; }
+    const side = currentSide === 'all' ? document.getElementById('inSide').value : currentSide;
+    const group = document.getElementById('inGroup').value.trim();
+    const companions = parseInt(document.getElementById('inCompanions').value) || 0;
+
+    guests.push({ id: uid(), name, side, group, companions, status:'pending' });
+    saveGuests();
+
+    nameEl.value = '';
+    document.getElementById('inGroup').value = '';
+    document.getElementById('inCompanions').value = 0;
+    nameEl.focus();
+    render();
+  });
+
+  document.getElementById('inName').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') document.getElementById('addBtn').click();
+  });
+
+  document.getElementById('searchInput').addEventListener('input', (e)=>{
+    searchTerm = e.target.value;
+    render();
+  });
+
+  document.querySelectorAll('.chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      currentFilter = chip.dataset.filter;
+      render();
+    });
+  });
+
+  coupleNames.addEventListener('blur', saveInfo);
+  weddingDate.addEventListener('blur', saveInfo);
+  coupleNames.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); coupleNames.blur(); }});
+  weddingDate.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); weddingDate.blur(); }});
+
+  document.getElementById('refreshChip')?.addEventListener('click', ()=>{ if(docRef) subscribeToData(); });
+
+  applySideToForm();
+  (async function boot(){
+    const ok = await window.__firebaseReady;
+    if(!ok){
+      showManualForm('Não consegui carregar as bibliotecas do Firebase por nenhuma das três fontes. Isso costuma ser rede corporativa, firewall, ou falta de internet — tente numa aba anônima sem extensões, ou em outra rede (ex: dados móveis).');
+      return;
+    }
+    const savedConfig = getSavedConfig() || DEFAULT_CONFIG;
+    initFirebase(savedConfig);
+  })();
+})();
+</script>
+</body>
+</html>
